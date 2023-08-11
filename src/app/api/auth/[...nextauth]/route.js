@@ -1,6 +1,26 @@
 import NextAuth from "next-auth/next";
 import GoogleProvider from "next-auth/providers/google";
 
+const checkUserExists = async (email) => {
+  try {
+    const response = await fetch(
+      process.env.URL_API_BACKEND + "checkifUserExists",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      }
+    );
+
+    const data = await response.json();
+    return data.userExists;
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
+};
+
 const handler = NextAuth({
   providers: [
     GoogleProvider({
@@ -9,9 +29,12 @@ const handler = NextAuth({
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile, email, credentials }) {
-      // realizar chamada a api
-      return true;
+    async signIn({ user }) {
+      if (user && (await checkUserExists(user.email))) {
+        return true;
+      } else {
+        return "/unauthorized";
+      }
     },
   },
 });
